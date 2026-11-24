@@ -7,7 +7,12 @@ import {
   AccentColor,
 } from '../types/academic';
 import { useAuth } from '../context/AuthContext';
-import { createPost, seedSampleAcademicClasses } from '../services/academicService';
+import {
+  createPost,
+  seedSampleAcademicClasses,
+  deleteClass,
+  removeEnrollment,
+} from '../services/academicService';
 import {
   Plus,
   Copy,
@@ -21,6 +26,9 @@ import {
   ExternalLink,
   Search,
   Link2,
+  Trash2,
+  Edit3,
+  LogOut,
 } from 'lucide-react';
 
 const ACCENT_TOP_BORDER: Record<AccentColor, string> = {
@@ -37,6 +45,7 @@ interface DashboardOverviewProps {
   enrollments: Enrollment[];
   onSelectClass: (classId: string) => void;
   onOpenNewClass: () => void;
+  onEditClass: (cls: UniversityClass) => void;
   onOpenJoinClass: () => void;
 }
 
@@ -45,12 +54,16 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   enrollments,
   onSelectClass,
   onOpenNewClass,
+  onEditClass,
   onOpenJoinClass,
 }) => {
   const { firebaseUser, profile, effectiveRole } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [confirmDeleteClassId, setConfirmDeleteClassId] = useState<string | null>(null);
+  const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
+  const [confirmLeaveClassId, setConfirmLeaveClassId] = useState<string | null>(null);
 
   // Quick Broadcast Composer state
   const [targetClassId, setTargetClassId] = useState('');
@@ -114,6 +127,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     (c) =>
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.school || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.course || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.academicYear || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.semester.toLowerCase().includes(searchQuery.toLowerCase())
@@ -123,6 +137,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     (e) =>
       e.classTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.classCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (e.school || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (e.course || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (e.academicYear || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -360,6 +375,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                         {cls.title}
                       </h3>
 
+                      {cls.school && (
+                        <div className="text-[11px] font-semibold text-slate-600 truncate">
+                          {cls.school}
+                        </div>
+                      )}
+
                       {(cls.course || cls.department) && (
                         <div className="text-xs font-medium text-blue-700 truncate">
                           {cls.course || cls.department}
@@ -419,7 +440,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                           </button>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <button
                             onClick={(e) => handleCopyCode(cls.joinCode, e)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-md text-xs font-mono font-semibold text-slate-800 transition cursor-pointer"
@@ -433,11 +454,71 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                             )}
                           </button>
 
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700">
-                            <span>Abrir</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditClass(cls);
+                              }}
+                              title="Editar turma"
+                              className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteClassId(
+                                  confirmDeleteClassId === cls.id ? null : cls.id
+                                );
+                              }}
+                              title="Apagar turma"
+                              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 pl-1">
+                              <span>Abrir</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </span>
+                          </div>
                         </div>
+
+                        {confirmDeleteClassId === cls.id && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-2 text-[11px]"
+                          >
+                            <span className="font-semibold text-red-800">Apagar esta turma?</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteClassId(null)}
+                                className="px-2 py-1 bg-white border border-slate-200 text-slate-700 rounded cursor-pointer"
+                              >
+                                Não
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingClassId === cls.id}
+                                onClick={async () => {
+                                  setDeletingClassId(cls.id);
+                                  try {
+                                    await deleteClass(cls.id, cls.joinCode, cls.lecturerId);
+                                    setConfirmDeleteClassId(null);
+                                  } finally {
+                                    setDeletingClassId(null);
+                                  }
+                                }}
+                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded cursor-pointer disabled:opacity-50"
+                              >
+                                {deletingClassId === cls.id ? 'A apagar...' : 'Sim, Apagar'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -489,20 +570,70 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       </span>
                     </div>
                     <h3 className="text-base font-bold text-slate-900">{enr.classTitle}</h3>
+                    {enr.school && (
+                      <div className="text-[11px] font-semibold text-slate-600 truncate">
+                        {enr.school}
+                      </div>
+                    )}
                     {enr.course && (
                       <div className="text-xs font-medium text-blue-700 truncate">{enr.course}</div>
                     )}
                     <p className="text-xs text-slate-600">Docente: {enr.lecturerName}</p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
-                    <span className="text-slate-500 font-mono">
-                      Presenças registadas: {enr.attendanceCount}
-                    </span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-blue-700">
-                      <span>Aceder</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </span>
+                  <div className="space-y-2 pt-3 border-t border-slate-100 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-mono">
+                        Presenças registadas: {enr.attendanceCount}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmLeaveClassId(
+                              confirmLeaveClassId === enr.classId ? null : enr.classId
+                            );
+                          }}
+                          title="Sair desta turma"
+                          className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="inline-flex items-center gap-1 font-semibold text-blue-700">
+                          <span>Aceder</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {confirmLeaveClassId === enr.classId && firebaseUser && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-2 text-[11px]"
+                      >
+                        <span className="font-semibold text-red-800">Sair da turma?</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmLeaveClassId(null)}
+                            className="px-2 py-1 bg-white border border-slate-200 text-slate-700 rounded cursor-pointer"
+                          >
+                            Não
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await removeEnrollment(enr.classId, firebaseUser.uid);
+                              setConfirmLeaveClassId(null);
+                            }}
+                            className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded cursor-pointer"
+                          >
+                            Confirmar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

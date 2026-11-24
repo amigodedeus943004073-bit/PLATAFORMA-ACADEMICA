@@ -64,12 +64,13 @@ service cloud.firestore {
 
     function isValidClass(data, classId) {
       return data.keys().hasAll(['id', 'title', 'code', 'joinCode', 'semester', 'accentColor', 'lecturerId', 'lecturerName', 'isArchived', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['id', 'title', 'code', 'joinCode', 'semester', 'course', 'academicYear', 'department', 'schedule', 'room', 'meetingUrl', 'description', 'accentColor', 'lecturerId', 'lecturerName', 'isArchived', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'title', 'code', 'joinCode', 'semester', 'school', 'course', 'academicYear', 'department', 'schedule', 'room', 'meetingUrl', 'description', 'accentColor', 'lecturerId', 'lecturerName', 'isArchived', 'createdAt', 'updatedAt'])
         && data.id is string && data.id == classId && isValidId(data.id)
         && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
         && data.code is string && data.code.size() >= 2 && data.code.size() <= 32
         && data.joinCode is string && data.joinCode.size() >= 4 && data.joinCode.size() <= 16 && data.joinCode.matches('^[A-Z0-9]+$')
         && data.semester is string && data.semester.size() >= 2 && data.semester.size() <= 40
+        && (!('school' in data) || (data.school is string && data.school.size() <= 120))
         && (!('course' in data) || (data.course is string && data.course.size() <= 100))
         && (!('academicYear' in data) || data.academicYear in ['1.º Ano', '2.º Ano', '3.º Ano', '4.º Ano', '5.º Ano'])
         && (!('department' in data) || (data.department is string && data.department.size() <= 80))
@@ -87,13 +88,14 @@ service cloud.firestore {
 
     function isValidJoinCode(data) {
       return data.keys().hasAll(['classId', 'title', 'code', 'lecturerId', 'lecturerName', 'semester', 'accentColor', 'createdAt'])
-        && data.keys().hasOnly(['classId', 'title', 'code', 'lecturerId', 'lecturerName', 'semester', 'course', 'academicYear', 'accentColor', 'createdAt'])
+        && data.keys().hasOnly(['classId', 'title', 'code', 'lecturerId', 'lecturerName', 'semester', 'school', 'course', 'academicYear', 'accentColor', 'createdAt'])
         && data.classId is string && isValidId(data.classId)
         && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
         && data.code is string && data.code.size() >= 2 && data.code.size() <= 32
         && data.lecturerId is string && isValidId(data.lecturerId)
         && data.lecturerName is string && data.lecturerName.size() >= 1 && data.lecturerName.size() <= 100
         && data.semester is string && data.semester.size() >= 2 && data.semester.size() <= 40
+        && (!('school' in data) || (data.school is string && data.school.size() <= 120))
         && (!('course' in data) || (data.course is string && data.course.size() <= 100))
         && (!('academicYear' in data) || data.academicYear in ['1.º Ano', '2.º Ano', '3.º Ano', '4.º Ano', '5.º Ano'])
         && data.accentColor in ['indigo', 'emerald', 'amber', 'rose', 'sky', 'slate']
@@ -102,7 +104,7 @@ service cloud.firestore {
 
     function isValidEnrollment(data, classId, studentId) {
       return data.keys().hasAll(['studentId', 'classId', 'lecturerId', 'studentName', 'classTitle', 'classCode', 'semester', 'lecturerName', 'accentColor', 'status', 'attendanceCount', 'joinedAt', 'updatedAt'])
-        && data.keys().hasOnly(['studentId', 'classId', 'lecturerId', 'studentName', 'studentCode', 'studentPhotoUrl', 'classTitle', 'classCode', 'semester', 'course', 'academicYear', 'lecturerName', 'accentColor', 'status', 'attendanceCount', 'joinedAt', 'updatedAt'])
+        && data.keys().hasOnly(['studentId', 'classId', 'lecturerId', 'studentName', 'studentCode', 'studentPhotoUrl', 'classTitle', 'classCode', 'semester', 'school', 'course', 'academicYear', 'lecturerName', 'accentColor', 'status', 'attendanceCount', 'joinedAt', 'updatedAt'])
         && data.studentId is string && data.studentId == studentId && isValidId(data.studentId)
         && data.classId is string && data.classId == classId && isValidId(data.classId)
         && data.lecturerId is string && isValidId(data.lecturerId)
@@ -112,6 +114,7 @@ service cloud.firestore {
         && data.classTitle is string && data.classTitle.size() >= 2 && data.classTitle.size() <= 120
         && data.classCode is string && data.classCode.size() >= 2 && data.classCode.size() <= 32
         && data.semester is string && data.semester.size() >= 2 && data.semester.size() <= 40
+        && (!('school' in data) || (data.school is string && data.school.size() <= 120))
         && (!('course' in data) || (data.course is string && data.course.size() <= 100))
         && (!('academicYear' in data) || data.academicYear in ['1.º Ano', '2.º Ano', '3.º Ano', '4.º Ano', '5.º Ano'])
         && data.lecturerName is string && data.lecturerName.size() >= 1 && data.lecturerName.size() <= 100
@@ -301,6 +304,69 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function isValidClassStudentCode(data, classId, codeKey) {
+      return data.keys().hasAll(['codeKey', 'studentCode', 'studentId', 'classId', 'lecturerId', 'createdAt'])
+        && data.keys().hasOnly(['codeKey', 'studentCode', 'studentId', 'classId', 'lecturerId', 'createdAt'])
+        && data.codeKey is string && data.codeKey == codeKey && isValidId(data.codeKey)
+        && data.studentCode is string && data.studentCode.size() >= 1 && data.studentCode.size() <= 40
+        && data.studentId is string && isValidId(data.studentId)
+        && data.classId is string && data.classId == classId && isValidId(data.classId)
+        && data.lecturerId is string && isValidId(data.lecturerId)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidLecturerProfile(data, lecturerId) {
+      return data.keys().hasAll(['lecturerId', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['lecturerId', 'displayName', 'academicTitle', 'school', 'department', 'bio', 'specialization', 'officeHours', 'officeLocation', 'contactEmail', 'phone', 'websiteUrl', 'photoUrl', 'createdAt', 'updatedAt'])
+        && data.lecturerId is string && data.lecturerId == lecturerId && isValidId(data.lecturerId)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && (!('academicTitle' in data) || (data.academicTitle is string && data.academicTitle.size() <= 120))
+        && (!('school' in data) || (data.school is string && data.school.size() <= 120))
+        && (!('department' in data) || (data.department is string && data.department.size() <= 100))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 2500))
+        && (!('specialization' in data) || (data.specialization is string && data.specialization.size() <= 300))
+        && (!('officeHours' in data) || (data.officeHours is string && data.officeHours.size() <= 160))
+        && (!('officeLocation' in data) || (data.officeLocation is string && data.officeLocation.size() <= 120))
+        && (!('contactEmail' in data) || (data.contactEmail is string && data.contactEmail.size() <= 160))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
+        && (!('websiteUrl' in data) || (data.websiteUrl is string && data.websiteUrl.size() <= 300))
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 100000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDirectConversation(data, classId, studentId) {
+      return data.keys().hasAll(['studentId', 'classId', 'lecturerId', 'studentName', 'lecturerName', 'lastSenderRole', 'lastMessageAt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['studentId', 'classId', 'lecturerId', 'studentName', 'studentCode', 'studentPhotoUrl', 'lecturerName', 'lastMessage', 'lastSenderRole', 'lastMessageAt', 'createdAt', 'updatedAt'])
+        && data.studentId is string && data.studentId == studentId && isValidId(data.studentId)
+        && data.classId is string && data.classId == classId && isValidId(data.classId)
+        && data.lecturerId is string && isValidId(data.lecturerId)
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100
+        && (!('studentCode' in data) || (data.studentCode is string && data.studentCode.size() <= 40))
+        && (!('studentPhotoUrl' in data) || (data.studentPhotoUrl is string && data.studentPhotoUrl.size() <= 100000))
+        && data.lecturerName is string && data.lecturerName.size() >= 1 && data.lecturerName.size() <= 100
+        && (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 300))
+        && data.lastSenderRole in ['docente', 'estudante']
+        && data.lastMessageAt is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDirectMessage(data, classId, studentId, messageId) {
+      return data.keys().hasAll(['id', 'classId', 'studentId', 'lecturerId', 'senderId', 'senderName', 'senderRole', 'text', 'createdAt'])
+        && data.keys().hasOnly(['id', 'classId', 'studentId', 'lecturerId', 'senderId', 'senderName', 'senderRole', 'senderPhotoUrl', 'text', 'createdAt'])
+        && data.id is string && data.id == messageId && isValidId(data.id)
+        && data.classId is string && data.classId == classId && isValidId(data.classId)
+        && data.studentId is string && data.studentId == studentId && isValidId(data.studentId)
+        && data.lecturerId is string && isValidId(data.lecturerId)
+        && data.senderId is string && isValidId(data.senderId)
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 100
+        && data.senderRole in ['docente', 'estudante']
+        && (!('senderPhotoUrl' in data) || (data.senderPhotoUrl is string && data.senderPhotoUrl.size() <= 100000))
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 1500
+        && data.createdAt is timestamp;
+    }
+
     // 1. Users (PII isolated strictly to owner or admin)
     match /users/{userId} {
       allow get: if isValidId(userId) && (isOwner(userId) || isSystemAdmin());
@@ -354,6 +420,30 @@ service cloud.firestore {
       }
     }
 
+    // 1b. Public Lecturer Profile Panel (controlled explicitly by the lecturer)
+    match /lecturers/{lecturerId} {
+      allow get: if isValidId(lecturerId) && isSignedIn();
+      allow list: if false;
+      allow create: if isEmailVerified()
+        && isValidId(lecturerId)
+        && isOwner(lecturerId)
+        && isValidLecturerProfile(incoming(), lecturerId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isEmailVerified()
+        && isValidId(lecturerId)
+        && (isOwner(lecturerId) || isSystemAdmin())
+        && isValidLecturerProfile(incoming(), lecturerId)
+        && incoming().lecturerId == existing().lecturerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'academicTitle', 'school', 'department', 'bio', 'specialization',
+          'officeHours', 'officeLocation', 'contactEmail', 'phone', 'websiteUrl', 'photoUrl', 'updatedAt'
+        ]);
+      allow delete: if isEmailVerified() && isValidId(lecturerId) && (isOwner(lecturerId) || isSystemAdmin());
+    }
+
     // 2. Class Join Codes (exact get lookup only, no list enumeration)
     match /classJoinCodes/{joinCode} {
       allow get: if isSignedIn() && joinCode is string && joinCode.size() >= 4 && joinCode.size() <= 16;
@@ -371,7 +461,7 @@ service cloud.firestore {
         && incoming().classId == existing().classId
         && incoming().lecturerId == existing().lecturerId
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'code', 'semester', 'course', 'academicYear', 'lecturerName', 'accentColor']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'code', 'semester', 'school', 'course', 'academicYear', 'lecturerName', 'accentColor']);
       allow delete: if isEmailVerified() && existing().lecturerId == request.auth.uid;
     }
 
@@ -394,7 +484,7 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly([
-          'title', 'code', 'semester', 'course', 'academicYear', 'department', 'schedule', 'room', 'meetingUrl', 'description', 'accentColor', 'lecturerName', 'isArchived', 'updatedAt'
+          'title', 'code', 'semester', 'school', 'course', 'academicYear', 'department', 'schedule', 'room', 'meetingUrl', 'description', 'accentColor', 'lecturerName', 'isArchived', 'updatedAt'
         ]);
       allow delete: if isEmailVerified() && isValidId(classId) && (existing().lecturerId == request.auth.uid || isSystemAdmin());
 
@@ -671,6 +761,70 @@ service cloud.firestore {
           );
         allow update: if false;
         allow delete: if isEmailVerified() && isValidId(classId) && isValidId(messageId) && (isClassLecturer(classId) || existing().authorId == request.auth.uid || isSystemAdmin());
+      }
+
+      // Unique studentCode registry per class to block duplicate student registration
+      match /studentCodes/{codeKey} {
+        allow get: if isValidId(classId) && isValidId(codeKey) && isSignedIn();
+        allow list: if false;
+        allow create: if isEmailVerified()
+          && isValidId(classId) && isValidId(codeKey)
+          && isValidClassStudentCode(incoming(), classId, codeKey)
+          && incoming().studentId == request.auth.uid
+          && exists(/databases/$(database)/documents/classes/$(classId))
+          && incoming().lecturerId == get(/databases/$(database)/documents/classes/$(classId)).data.lecturerId
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isEmailVerified() && isValidId(classId) && isValidId(codeKey) && (isClassLecturer(classId) || existing().studentId == request.auth.uid || isSystemAdmin());
+      }
+
+      // Direct 1-to-1 private conversations between each student and the professor
+      match /conversations/{studentId} {
+        allow get: if isValidId(classId) && isValidId(studentId) && isSignedIn() && (isOwner(studentId) || isClassLecturer(classId) || isSystemAdmin());
+        allow list: if isSignedIn() && (resource.data.lecturerId == request.auth.uid || resource.data.studentId == request.auth.uid || isSystemAdmin());
+        allow create: if isEmailVerified()
+          && isValidId(classId) && isValidId(studentId)
+          && isValidDirectConversation(incoming(), classId, studentId)
+          && exists(/databases/$(database)/documents/classes/$(classId))
+          && incoming().lecturerId == get(/databases/$(database)/documents/classes/$(classId)).data.lecturerId
+          && (isOwner(studentId) || isClassLecturer(classId))
+          && (isClassLecturer(classId) || isEnrolled(classId))
+          && incoming().lastMessageAt == request.time
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isEmailVerified()
+          && isValidId(classId) && isValidId(studentId)
+          && isValidDirectConversation(incoming(), classId, studentId)
+          && (isOwner(studentId) || isClassLecturer(classId))
+          && incoming().studentId == existing().studentId
+          && incoming().classId == existing().classId
+          && incoming().lecturerId == existing().lecturerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().lastMessageAt == request.time
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'studentName', 'studentCode', 'studentPhotoUrl', 'lecturerName',
+            'lastMessage', 'lastSenderRole', 'lastMessageAt', 'updatedAt'
+          ]);
+        allow delete: if isEmailVerified() && isValidId(classId) && isValidId(studentId) && (isClassLecturer(classId) || isOwner(studentId) || isSystemAdmin());
+
+        match /messages/{messageId} {
+          allow get: if isValidId(classId) && isValidId(studentId) && isValidId(messageId) && isSignedIn() && (isOwner(studentId) || isClassLecturer(classId) || isSystemAdmin());
+          allow list: if isSignedIn() && (resource.data.lecturerId == request.auth.uid || resource.data.studentId == request.auth.uid || isSystemAdmin());
+          allow create: if isEmailVerified()
+            && isValidId(classId) && isValidId(studentId) && isValidId(messageId)
+            && isValidDirectMessage(incoming(), classId, studentId, messageId)
+            && exists(/databases/$(database)/documents/classes/$(classId))
+            && incoming().lecturerId == get(/databases/$(database)/documents/classes/$(classId)).data.lecturerId
+            && incoming().senderId == request.auth.uid
+            && incoming().createdAt == request.time
+            && (
+              (isClassLecturer(classId) && incoming().senderRole == 'docente')
+              || (isOwner(studentId) && isEnrolled(classId) && incoming().senderRole == 'estudante')
+            );
+          allow update: if false;
+          allow delete: if isEmailVerified() && isValidId(classId) && isValidId(studentId) && isValidId(messageId) && (isClassLecturer(classId) || existing().senderId == request.auth.uid || isSystemAdmin());
+        }
       }
     }
   }

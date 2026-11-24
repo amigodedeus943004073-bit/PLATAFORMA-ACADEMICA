@@ -27,6 +27,7 @@
         "code": { "type": "string", "minLength": 2, "maxLength": 32 },
         "joinCode": { "type": "string", "minLength": 4, "maxLength": 16, "pattern": "^[A-Z0-9]+$" },
         "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "school": { "type": "string", "maxLength": 120 },
         "course": { "type": "string", "maxLength": 100 },
         "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
         "department": { "type": "string", "maxLength": 80 },
@@ -54,6 +55,7 @@
         "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
         "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
         "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "school": { "type": "string", "maxLength": 120 },
         "course": { "type": "string", "maxLength": 100 },
         "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
         "accentColor": { "type": "string", "enum": ["indigo", "emerald", "amber", "rose", "sky", "slate"] },
@@ -75,6 +77,7 @@
         "classTitle": { "type": "string", "minLength": 2, "maxLength": 120 },
         "classCode": { "type": "string", "minLength": 2, "maxLength": 32 },
         "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "school": { "type": "string", "maxLength": 120 },
         "course": { "type": "string", "maxLength": 100 },
         "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
         "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
@@ -297,6 +300,81 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "classId", "lecturerId", "authorId", "authorName", "authorRole", "text", "createdAt"]
+    },
+    "ClassStudentCode": {
+      "title": "ClassStudentCode",
+      "description": "Índice de unicidade do número de estudante por turma para impedir registo duplicado.",
+      "type": "object",
+      "properties": {
+        "codeKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentCode": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["codeKey", "studentCode", "studentId", "classId", "lecturerId", "createdAt"]
+    },
+    "LecturerPublicProfile": {
+      "title": "LecturerPublicProfile",
+      "description": "Painel de apresentação e informações académicas públicas do professor para os estudantes das suas turmas.",
+      "type": "object",
+      "properties": {
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "academicTitle": { "type": "string", "maxLength": 120 },
+        "school": { "type": "string", "maxLength": 120 },
+        "department": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 2500 },
+        "specialization": { "type": "string", "maxLength": 300 },
+        "officeHours": { "type": "string", "maxLength": 160 },
+        "officeLocation": { "type": "string", "maxLength": 120 },
+        "contactEmail": { "type": "string", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 40 },
+        "websiteUrl": { "type": "string", "maxLength": 300 },
+        "photoUrl": { "type": "string", "maxLength": 100000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lecturerId", "displayName", "createdAt", "updatedAt"]
+    },
+    "DirectConversation": {
+      "title": "DirectConversation",
+      "description": "Resumo da conversa privada 1-para-1 entre um estudante e o professor da turma.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 40 },
+        "studentPhotoUrl": { "type": "string", "maxLength": 100000 },
+        "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "lastMessage": { "type": "string", "maxLength": 300 },
+        "lastSenderRole": { "type": "string", "enum": ["docente", "estudante"] },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "classId", "lecturerId", "studentName", "lecturerName", "lastSenderRole", "lastMessageAt", "createdAt", "updatedAt"]
+    },
+    "DirectMessage": {
+      "title": "DirectMessage",
+      "description": "Mensagem direta privada entre estudante e professor numa turma.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "senderRole": { "type": "string", "enum": ["docente", "estudante"] },
+        "senderPhotoUrl": { "type": "string", "maxLength": 100000 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "studentId", "lecturerId", "senderId", "senderName", "senderRole", "text", "createdAt"]
     }
   },
   "firestore": {
@@ -363,6 +441,22 @@
     "/classes/{classId}/chatMessages/{messageId}": {
       "schema": { "$ref": "#/entities/ClassChatMessage" },
       "description": "Sala de bate-papo em tempo real da turma."
+    },
+    "/classes/{classId}/studentCodes/{codeKey}": {
+      "schema": { "$ref": "#/entities/ClassStudentCode" },
+      "description": "Registo único do número de estudante na turma para bloquear inscrições duplicadas."
+    },
+    "/lecturers/{lecturerId}": {
+      "schema": { "$ref": "#/entities/LecturerPublicProfile" },
+      "description": "Painel informativo público do professor (biografia, formação, horários de atendimento e contactos institucionais)."
+    },
+    "/classes/{classId}/conversations/{studentId}": {
+      "schema": { "$ref": "#/entities/DirectConversation" },
+      "description": "Cabeçalho da conversa direta entre estudante e docente."
+    },
+    "/classes/{classId}/conversations/{studentId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/DirectMessage" },
+      "description": "Mensagens diretas privadas trocadas entre estudante e docente."
     }
   }
 }

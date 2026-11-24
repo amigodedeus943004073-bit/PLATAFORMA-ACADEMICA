@@ -55,6 +55,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
   const { firebaseUser, profile } = useAuth();
   const [title, setTitle] = useState('');
   const [code, setCode] = useState('');
+  const [school, setSchool] = useState('');
   const [course, setCourse] = useState('');
   const [academicYear, setAcademicYear] = useState<AcademicYear>('1.º Ano');
   const [semester, setSemester] = useState('2026/2027 · 1.º Semestre');
@@ -70,6 +71,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
     if (editingClass) {
       setTitle(editingClass.title);
       setCode(editingClass.code);
+      setSchool(editingClass.school || '');
       setCourse(editingClass.course || editingClass.department || '');
       setAcademicYear(editingClass.academicYear || '1.º Ano');
       setSemester(editingClass.semester);
@@ -81,6 +83,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
     } else {
       setTitle('');
       setCode('');
+      setSchool('');
       setCourse('');
       setAcademicYear('1.º Ano');
       setSemester('2026/2027 · 1.º Semestre');
@@ -102,6 +105,10 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
       setError('Indique a unidade curricular e o código da turma (mín. 2 caracteres).');
       return;
     }
+    if (school.trim().length < 2) {
+      setError('Indique a escola / instituição da turma (mín. 2 caracteres).');
+      return;
+    }
     if (course.trim().length < 2) {
       setError('Indique o curso da turma (mín. 2 caracteres).');
       return;
@@ -115,6 +122,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
           title,
           code,
           semester,
+          school,
           course,
           academicYear,
           schedule,
@@ -130,6 +138,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
           title,
           code,
           semester,
+          school,
           course,
           academicYear,
           schedule,
@@ -213,6 +222,21 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono uppercase outline-none focus:border-blue-600"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Escola / Faculdade / Instituto *
+            </label>
+            <input
+              type="text"
+              required
+              maxLength={BLUEPRINT_LIMITS.schoolMax}
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              placeholder="ex: Escola Superior de Tecnologia / Faculdade de Engenharia"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-600"
+            />
           </div>
 
           <div className="grid sm:grid-cols-3 gap-3">
@@ -375,6 +399,8 @@ interface JoinClassModalProps {
   onClose: () => void;
   onJoined?: (classId: string) => void;
   initialCode?: string;
+  initialError?: string;
+  enrolledClassIds?: string[];
 }
 
 export const JoinClassModal: React.FC<JoinClassModalProps> = ({
@@ -382,6 +408,8 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
   onClose,
   onJoined,
   initialCode = '',
+  initialError = '',
+  enrolledClassIds = [],
 }) => {
   const { firebaseUser, profile, syncStudentIdentity } = useAuth();
   const [joinCode, setJoinCode] = useState('');
@@ -391,6 +419,7 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
   const [classPreview, setClassPreview] = useState<ClassJoinCode | null>(null);
   const [checkingCode, setCheckingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [alreadyEnrolledClassId, setAlreadyEnrolledClassId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
@@ -401,12 +430,14 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
       setStudentCode(profile?.studentCode || '');
       setPhotoUrl(profile?.photoUrl || '');
       setClassPreview(null);
-      setFeedback(null);
+      setAlreadyEnrolledClassId(null);
+      setFeedback(initialError ? { ok: false, msg: initialError } : null);
     }
-  }, [isOpen, initialCode, profile?.displayName, profile?.studentCode, profile?.photoUrl]);
+  }, [isOpen, initialCode, initialError, profile?.displayName, profile?.studentCode, profile?.photoUrl]);
 
   useEffect(() => {
     if (!isOpen) return;
+    setAlreadyEnrolledClassId(null);
     const clean = joinCode.trim().toUpperCase();
     if (clean.length < 4) {
       setClassPreview(null);
@@ -440,9 +471,22 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isAlreadyEnrolled = Boolean(
+    classPreview && enrolledClassIds.includes(classPreview.classId)
+  );
+  const openTargetClassId = isAlreadyEnrolled
+    ? classPreview?.classId || null
+    : alreadyEnrolledClassId;
+
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firebaseUser || !profile) return;
+
+    if (isAlreadyEnrolled && classPreview) {
+      onClose();
+      onJoined?.(classPreview.classId);
+      return;
+    }
 
     const cleanName = fullName.trim();
     const cleanNumber = studentCode.trim();
@@ -457,6 +501,7 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
 
     setSubmitting(true);
     setFeedback(null);
+    setAlreadyEnrolledClassId(null);
     try {
       const res = await enrollStudentByCode(
         joinCode,
@@ -466,7 +511,9 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
         photoUrl || undefined
       );
       setFeedback({ ok: res.success, msg: res.message });
-      if (res.success && res.classId) {
+      if (res.alreadyEnrolled && res.classId) {
+        setAlreadyEnrolledClassId(res.classId);
+      } else if (res.success && res.classId) {
         await syncStudentIdentity(cleanName, cleanNumber, photoUrl || undefined);
         setTimeout(() => {
           onClose();
@@ -547,10 +594,15 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
                 ) : classPreview ? (
                   <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2.5 text-xs">
                     <GraduationCap className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 space-y-0.5">
                       <div className="font-bold text-slate-900 truncate">
                         {classPreview.code} — {classPreview.title}
                       </div>
+                      {classPreview.school && (
+                        <div className="text-[11px] font-semibold text-blue-800 truncate">
+                          Escola: {classPreview.school}
+                        </div>
+                      )}
                       <div className="text-[11px] text-slate-600">
                         Docente: {classPreview.lecturerName} · {classPreview.semester}
                         {classPreview.course && ` · ${classPreview.course}`}
@@ -567,63 +619,95 @@ export const JoinClassModal: React.FC<JoinClassModalProps> = ({
             )}
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Nome Completo do Estudante *
-            </label>
-            <input
-              type="text"
-              required
-              minLength={3}
-              maxLength={BLUEPRINT_LIMITS.displayNameMax}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="ex: Maria João Fernandes Silva"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-600"
-            />
-          </div>
+          {openTargetClassId ? (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-3 text-xs text-amber-900">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  Já se encontra registado nesta turma. Cada estudante só pode registar-se uma única vez.
+                </span>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer"
+                >
+                  Fechar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onJoined?.(openTargetClassId);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg cursor-pointer"
+                >
+                  Abrir Turma
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nome Completo do Estudante *
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={3}
+                  maxLength={BLUEPRINT_LIMITS.displayNameMax}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="ex: Maria João Fernandes Silva"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-600"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Número de Estudante / Mecanográfico *
-            </label>
-            <input
-              type="text"
-              required
-              minLength={1}
-              maxLength={BLUEPRINT_LIMITS.studentCodeMax}
-              value={studentCode}
-              onChange={(e) => setStudentCode(e.target.value)}
-              placeholder="ex: 20260418"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono outline-none focus:border-blue-600"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Número de Estudante / Mecanográfico *
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={1}
+                  maxLength={BLUEPRINT_LIMITS.studentCodeMax}
+                  value={studentCode}
+                  onChange={(e) => setStudentCode(e.target.value)}
+                  placeholder="ex: 20260418"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono outline-none focus:border-blue-600"
+                />
+              </div>
 
-          <StudentPhotoPicker
-            compact
-            photoUrl={photoUrl}
-            onChange={setPhotoUrl}
-            label="Fotografia do Estudante (Opcional)"
-            helperText="Opcional — pode tirar foto ou escolher da galeria para o seu registo na turma."
-          />
+              <StudentPhotoPicker
+                compact
+                photoUrl={photoUrl}
+                onChange={setPhotoUrl}
+                label="Fotografia do Estudante (Opcional)"
+                helperText="Opcional — pode tirar foto ou escolher da galeria para o seu registo na turma."
+              />
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !joinCode.trim() || !fullName.trim() || !studentCode.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg cursor-pointer disabled:opacity-50"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>{submitting ? 'A registar...' : 'Concluir Registo na Turma'}</span>
-            </button>
-          </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !joinCode.trim() || !fullName.trim() || !studentCode.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg cursor-pointer disabled:opacity-50"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>{submitting ? 'A registar...' : 'Concluir Registo na Turma'}</span>
+                </button>
+              </div>
+            </>
+          )}
         </form>
       </div>
     </div>
@@ -820,7 +904,9 @@ export const InviteStudentsModal: React.FC<InviteStudentsModalProps> = ({
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const inviteUrl = `${origin}/?convite=${cls.joinCode}`;
-  const inviteMessage = `Convite para a turma ${cls.code} — ${cls.title} (Docente: ${cls.lecturerName}).\nAceda a: ${inviteUrl}\nIntroduza o código de registo ${cls.joinCode} e cadastre-se com o seu nome completo e número de estudante.`;
+  const inviteMessage = `Convite para a turma ${cls.code} — ${cls.title}${
+    cls.school ? ` (${cls.school})` : ''
+  } (Docente: ${cls.lecturerName}).\nAceda a: ${inviteUrl}\nIntroduza o código de registo ${cls.joinCode} e cadastre-se com o seu nome completo e número de estudante.`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
     inviteUrl
   )}&bgcolor=ffffff&color=0f172a&margin=8`;
@@ -865,6 +951,7 @@ export const InviteStudentsModal: React.FC<InviteStudentsModalProps> = ({
             </h2>
             <p className="text-xs text-slate-500">
               {cls.code} · {cls.title}
+              {cls.school ? ` · ${cls.school}` : ''}
             </p>
           </div>
           <button

@@ -33,6 +33,7 @@ const AcademicShell: React.FC = () => {
   const [editingClass, setEditingClass] = useState<UniversityClass | null>(null);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState('');
+  const [pendingInviteError, setPendingInviteError] = useState('');
   const [autoInviteClassId, setAutoInviteClassId] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [installModalOpen, setInstallModalOpen] = useState(false);
@@ -82,12 +83,18 @@ const AcademicShell: React.FC = () => {
           if (res.success && res.classId) {
             await syncStudentIdentity(storedName, storedStudentCode, storedPhoto || undefined);
             setSelectedClassId(res.classId);
+          } else if (res.alreadyEnrolled && res.classId) {
+            setSelectedClassId(res.classId);
           } else {
             setPendingInviteCode(storedCode);
+            setPendingInviteError(res.message);
             setJoinModalOpen(true);
           }
-        } catch {
+        } catch (err) {
           setPendingInviteCode(storedCode);
+          setPendingInviteError(
+            err instanceof Error ? err.message : 'Não foi possível concluir o registo na turma.'
+          );
           setJoinModalOpen(true);
         }
       })();
@@ -240,6 +247,10 @@ const AcademicShell: React.FC = () => {
                 setEditingClass(null);
                 setClassFormOpen(true);
               }}
+              onEditClass={(cls) => {
+                setEditingClass(cls);
+                setClassFormOpen(true);
+              }}
               onOpenJoinClass={() => setJoinModalOpen(true)}
             />
           )}
@@ -263,12 +274,16 @@ const AcademicShell: React.FC = () => {
       <JoinClassModal
         isOpen={joinModalOpen}
         initialCode={pendingInviteCode}
+        initialError={pendingInviteError}
+        enrolledClassIds={enrollments.map((e) => e.classId)}
         onClose={() => {
           setJoinModalOpen(false);
           setPendingInviteCode('');
+          setPendingInviteError('');
         }}
         onJoined={(id) => {
           setPendingInviteCode('');
+          setPendingInviteError('');
           setSelectedClassId(id);
         }}
       />

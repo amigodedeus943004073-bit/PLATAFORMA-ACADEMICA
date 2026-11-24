@@ -5,6 +5,7 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
+  getDocs,
   serverTimestamp,
   query,
   where,
@@ -27,6 +28,9 @@ import {
   StudentGrade,
   ResultPublication,
   ClassChatMessage,
+  LecturerPublicProfile,
+  DirectConversation,
+  DirectMessage,
   AccentColor,
   PostType,
   PostPriority,
@@ -41,6 +45,21 @@ import {
 function makeSafeId(prefix: string): string {
   const rand = Math.random().toString(36).substring(2, 8);
   return `${prefix}_${Date.now()}_${rand}`;
+}
+
+export function normalizeStudentCodeKey(rawStudentCode: string): string {
+  const cleaned = rawStudentCode
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 120);
+  if (cleaned) return cleaned;
+  const hex = Array.from(rawStudentCode.trim())
+    .map((c) => c.charCodeAt(0).toString(16))
+    .join('')
+    .slice(0, 64);
+  return `SC_${hex || 'EMPTY'}`;
 }
 
 export function generateJoinCode(): string {
@@ -836,6 +855,72 @@ export function subscribeClassChatMessages(
   );
 }
 
+export function subscribeLecturerProfile(
+  lecturerId: string,
+  callback: (profile: LecturerPublicProfile | null) => void
+): Unsubscribe {
+  const path = `lecturers/${lecturerId}`;
+  return onSnapshot(
+    doc(db, 'lecturers', lecturerId),
+    (snap) => {
+      callback(snap.exists() ? (snap.data() as LecturerPublicProfile) : null);
+    },
+    (err) => handleFirestoreError(err, OperationType.GET, path)
+  );
+}
+
+export function subscribeClassConversations(
+  classId: string,
+  lecturerId: string,
+  callback: (conversations: DirectConversation[]) => void
+): Unsubscribe {
+  const path = `classes/${classId}/conversations`;
+  const q = query(
+    collection(db, 'classes', classId, 'conversations'),
+    where('lecturerId', '==', lecturerId)
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => d.data() as DirectConversation);
+      list.sort((a, b) => {
+        const tA = a.lastMessageAt?.toMillis?.() || 0;
+        const tB = b.lastMessageAt?.toMillis?.() || 0;
+        return tB - tA;
+      });
+      callback(list);
+    },
+    (err) => handleFirestoreError(err, OperationType.LIST, path)
+  );
+}
+
+export function subscribeDirectMessages(
+  classId: string,
+  studentId: string,
+  viewerUid: string,
+  isLecturerOwner: boolean,
+  callback: (messages: DirectMessage[]) => void
+): Unsubscribe {
+  const path = `classes/${classId}/conversations/${studentId}/messages`;
+  const q = query(
+    collection(db, 'classes', classId, 'conversations', studentId, 'messages'),
+    where(isLecturerOwner ? 'lecturerId' : 'studentId', '==', viewerUid)
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => d.data() as DirectMessage);
+      list.sort((a, b) => {
+        const tA = a.createdAt?.toMillis?.() || 0;
+        const tB = b.createdAt?.toMillis?.() || 0;
+        return tA - tB;
+      });
+      callback(list);
+    },
+    (err) => handleFirestoreError(err, OperationType.LIST, path)
+  );
+}
+
 // ============================================================================
 // MUTATIONS
 // ============================================================================
@@ -847,6 +932,7 @@ export async function createClass(
     title: string;
     code: string;
     semester: string;
+    school?: string;
     course?: string;
     academicYear?: AcademicYear;
     schedule?: string;
@@ -859,6 +945,7 @@ export async function createClass(
   const classId = makeSafeId('cls');
   const joinCode = generateJoinCode();
   const classPath = `classes/${classId}`;
+  const cleanSchool = (input.school || '').trim().slice(0, BLUEPRINT_LIMITS.schoolMax);
   const cleanCourse = (input.course || '').trim().slice(0, BLUEPRINT_LIMITS.courseMax);
   const cleanYear: AcademicYear = input.academicYear || '1.º Ano';
 
@@ -868,6 +955,7 @@ export async function createClass(
     code: input.code.trim().toUpperCase().slice(0, BLUEPRINT_LIMITS.classCodeMax),
     joinCode,
     semester: input.semester.trim().slice(0, BLUEPRINT_LIMITS.semesterMax),
+    school: cleanSchool,
     course: cleanCourse,
     academicYear: cleanYear,
     schedule: (input.schedule || '').trim().slice(0, BLUEPRINT_LIMITS.scheduleMax),
@@ -897,6 +985,7 @@ export async function createClass(
       lecturerId,
       lecturerName: cleanClass.lecturerName,
       semester: cleanClass.semester,
+      school: cleanSchool,
       course: cleanCourse,
       academicYear: cleanYear,
       accentColor: cleanClass.accentColor,
@@ -917,6 +1006,7 @@ export async function updateClass(
     title: string;
     code: string;
     semester: string;
+    school?: string;
     course?: string;
     academicYear?: AcademicYear;
     schedule?: string;
@@ -931,6 +1021,7 @@ export async function updateClass(
   const cleanTitle = input.title.trim().slice(0, BLUEPRINT_LIMITS.classTitleMax);
   const cleanCode = input.code.trim().toUpperCase().slice(0, BLUEPRINT_LIMITS.classCodeMax);
   const cleanSemester = input.semester.trim().slice(0, BLUEPRINT_LIMITS.semesterMax);
+  const cleanSchool = (input.school || '').trim().slice(0, BLUEPRINT_LIMITS.schoolMax);
   const cleanCourse = (input.course || '').trim().slice(0, BLUEPRINT_LIMITS.courseMax);
   const cleanYear: AcademicYear = input.academicYear || '1.º Ano';
 
@@ -939,6 +1030,7 @@ export async function updateClass(
       title: cleanTitle,
       code: cleanCode,
       semester: cleanSemester,
+      school: cleanSchool,
       course: cleanCourse,
       academicYear: cleanYear,
       schedule: (input.schedule || '').trim().slice(0, BLUEPRINT_LIMITS.scheduleMax),
@@ -956,6 +1048,7 @@ export async function updateClass(
         title: cleanTitle,
         code: cleanCode,
         semester: cleanSemester,
+        school: cleanSchool,
         course: cleanCourse,
         academicYear: cleanYear,
         lecturerName: lecturerName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
@@ -967,10 +1060,49 @@ export async function updateClass(
   }
 }
 
-export async function deleteClass(classId: string, joinCode: string): Promise<void> {
+export async function deleteClass(
+  classId: string,
+  joinCode: string,
+  lecturerId?: string
+): Promise<void> {
   try {
+    if (lecturerId) {
+      const enrSnap = await getDocs(
+        query(collection(db, 'classes', classId, 'enrollments'), where('lecturerId', '==', lecturerId))
+      );
+      await Promise.all(
+        enrSnap.docs.map(async (enrDoc) => {
+          const enr = enrDoc.data() as Enrollment;
+          try {
+            await deleteDoc(doc(db, 'users', enr.studentId, 'enrollments', classId));
+          } catch {
+            // Ignore if mirror already removed
+          }
+          try {
+            await deleteDoc(doc(db, 'classes', classId, 'enrollments', enr.studentId));
+          } catch {
+            // Ignore
+          }
+          if (enr.studentCode) {
+            const codeKey = normalizeStudentCodeKey(enr.studentCode);
+            try {
+              const codeRef = doc(db, 'classes', classId, 'studentCodes', codeKey);
+              if ((await getDoc(codeRef)).exists()) {
+                await deleteDoc(codeRef);
+              }
+            } catch {
+              // Ignore
+            }
+          }
+        })
+      );
+    }
+
     if (joinCode) {
-      await deleteDoc(doc(db, 'classJoinCodes', joinCode));
+      const joinRef = doc(db, 'classJoinCodes', joinCode);
+      if ((await getDoc(joinRef)).exists()) {
+        await deleteDoc(joinRef);
+      }
     }
     await deleteDoc(doc(db, 'classes', classId));
   } catch (err) {
@@ -999,7 +1131,7 @@ export async function enrollStudentByCode(
   studentName: string,
   studentCode: string,
   studentPhotoUrl?: string
-): Promise<{ success: boolean; message: string; classId?: string }> {
+): Promise<{ success: boolean; alreadyEnrolled?: boolean; message: string; classId?: string }> {
   const cleanCode = rawCode.trim().toUpperCase();
   if (!BLUEPRINT_LIMITS.joinCodePattern.test(cleanCode)) {
     return { success: false, message: 'O código de convite deve ter entre 4 e 16 letras ou números.' };
@@ -1033,31 +1165,52 @@ export async function enrollStudentByCode(
 
   const info = joinSnap.data() as ClassJoinCode;
   const enrollPath = `classes/${info.classId}/enrollments/${studentId}`;
+  const codeKey = normalizeStudentCodeKey(cleanStudentCode);
 
   try {
     const classEnrollRef = doc(db, 'classes', info.classId, 'enrollments', studentId);
     const userEnrollRef = doc(db, 'users', studentId, 'enrollments', info.classId);
-    const existingSnap = await getDoc(classEnrollRef);
+    const studentCodeRef = doc(db, 'classes', info.classId, 'studentCodes', codeKey);
 
+    const existingSnap = await getDoc(classEnrollRef);
     if (existingSnap.exists()) {
-      const updatePayload: Record<string, unknown> = {
-        studentName: cleanName,
-        studentCode: cleanStudentCode,
-        updatedAt: serverTimestamp(),
-      };
-      if (studentPhotoUrl !== undefined) {
-        updatePayload.studentPhotoUrl = cleanPhoto;
-      }
-      await updateDoc(classEnrollRef, updatePayload);
+      // Ensure mirror doc exists if needed, without creating a duplicate enrollment
       const userMirrorSnap = await getDoc(userEnrollRef);
-      if (userMirrorSnap.exists()) {
-        await updateDoc(userEnrollRef, updatePayload);
+      if (!userMirrorSnap.exists()) {
+        await setDoc(userEnrollRef, existingSnap.data());
       }
       return {
-        success: true,
-        message: `Registo atualizado na turma ${info.title}!`,
+        success: false,
+        alreadyEnrolled: true,
+        message: `Já está registado na turma ${info.title}. Cada estudante só pode registar-se uma única vez.`,
         classId: info.classId,
       };
+    }
+
+    const codeSnap = await getDoc(studentCodeRef);
+    if (codeSnap.exists() && codeSnap.data()?.studentId !== studentId) {
+      return {
+        success: false,
+        message: `O número de estudante "${cleanStudentCode}" já foi utilizado nesta turma. Não é permitido registar o mesmo estudante duas vezes.`,
+      };
+    }
+
+    if (!codeSnap.exists()) {
+      try {
+        await setDoc(studentCodeRef, {
+          codeKey,
+          studentCode: cleanStudentCode,
+          studentId,
+          classId: info.classId,
+          lecturerId: info.lecturerId,
+          createdAt: serverTimestamp(),
+        });
+      } catch {
+        return {
+          success: false,
+          message: `O número de estudante "${cleanStudentCode}" já se encontra registado nesta turma.`,
+        };
+      }
     }
 
     const enrollmentPayload = {
@@ -1070,6 +1223,7 @@ export async function enrollStudentByCode(
       classTitle: info.title,
       classCode: info.code,
       semester: info.semester,
+      ...(info.school ? { school: info.school } : {}),
       ...(info.course ? { course: info.course } : {}),
       ...(info.academicYear ? { academicYear: info.academicYear } : {}),
       lecturerName: info.lecturerName,
@@ -1138,8 +1292,23 @@ export async function updateEnrollmentAttendance(
 export async function removeEnrollment(classId: string, studentId: string): Promise<void> {
   const path = `classes/${classId}/enrollments/${studentId}`;
   try {
-    await deleteDoc(doc(db, 'classes', classId, 'enrollments', studentId));
-    await deleteDoc(doc(db, 'users', studentId, 'enrollments', classId));
+    const classEnrollRef = doc(db, 'classes', classId, 'enrollments', studentId);
+    const snap = await getDoc(classEnrollRef);
+    const existingCode = snap.exists() ? (snap.data() as Enrollment).studentCode : '';
+    await deleteDoc(classEnrollRef);
+
+    const userEnrollRef = doc(db, 'users', studentId, 'enrollments', classId);
+    if ((await getDoc(userEnrollRef)).exists()) {
+      await deleteDoc(userEnrollRef);
+    }
+
+    if (existingCode) {
+      const codeKey = normalizeStudentCodeKey(existingCode);
+      const codeRef = doc(db, 'classes', classId, 'studentCodes', codeKey);
+      if ((await getDoc(codeRef)).exists()) {
+        await deleteDoc(codeRef);
+      }
+    }
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
@@ -1663,6 +1832,165 @@ export async function deleteClassChatMessage(classId: string, messageId: string)
   }
 }
 
+export async function saveLecturerPublicProfile(
+  lecturerId: string,
+  input: {
+    displayName: string;
+    academicTitle?: string;
+    school?: string;
+    department?: string;
+    bio?: string;
+    specialization?: string;
+    officeHours?: string;
+    officeLocation?: string;
+    contactEmail?: string;
+    phone?: string;
+    websiteUrl?: string;
+    photoUrl?: string;
+  }
+): Promise<void> {
+  const path = `lecturers/${lecturerId}`;
+  const ref = doc(db, 'lecturers', lecturerId);
+  const cleanName = input.displayName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax) || 'Docente';
+  const cleanPhoto =
+    input.photoUrl && input.photoUrl.length <= BLUEPRINT_LIMITS.photoMax ? input.photoUrl : '';
+  const cleanWebsite = input.websiteUrl?.trim() ? normalizeUrl(input.websiteUrl).slice(0, BLUEPRINT_LIMITS.websiteUrlMax) : '';
+
+  const fields = {
+    displayName: cleanName,
+    academicTitle: (input.academicTitle || '').trim().slice(0, BLUEPRINT_LIMITS.academicTitleMax),
+    school: (input.school || '').trim().slice(0, BLUEPRINT_LIMITS.schoolMax),
+    department: (input.department || '').trim().slice(0, BLUEPRINT_LIMITS.departmentMax),
+    bio: (input.bio || '').trim().slice(0, BLUEPRINT_LIMITS.bioMax),
+    specialization: (input.specialization || '').trim().slice(0, BLUEPRINT_LIMITS.specializationMax),
+    officeHours: (input.officeHours || '').trim().slice(0, BLUEPRINT_LIMITS.officeHoursMax),
+    officeLocation: (input.officeLocation || '').trim().slice(0, BLUEPRINT_LIMITS.officeLocationMax),
+    contactEmail: (input.contactEmail || '').trim().slice(0, BLUEPRINT_LIMITS.contactEmailMax),
+    phone: (input.phone || '').trim().slice(0, BLUEPRINT_LIMITS.phoneMax),
+    websiteUrl: cleanWebsite,
+    photoUrl: cleanPhoto,
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      await updateDoc(ref, fields);
+    } else {
+      await setDoc(ref, {
+        lecturerId,
+        ...fields,
+        createdAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+  }
+}
+
+export async function sendDirectMessage(params: {
+  classId: string;
+  lecturerId: string;
+  lecturerName: string;
+  studentId: string;
+  studentName: string;
+  studentCode?: string;
+  studentPhotoUrl?: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  senderPhotoUrl?: string;
+  text: string;
+}): Promise<string> {
+  const cleanText = params.text.trim().slice(0, BLUEPRINT_LIMITS.chatMessageMax);
+  if (!cleanText) {
+    throw new Error('Escreva uma mensagem antes de enviar.');
+  }
+
+  const messageId = makeSafeId('dmsg');
+  const convPath = `classes/${params.classId}/conversations/${params.studentId}`;
+  const msgPath = `${convPath}/messages/${messageId}`;
+  const convRef = doc(db, 'classes', params.classId, 'conversations', params.studentId);
+
+  const cleanSenderPhoto =
+    params.senderPhotoUrl && params.senderPhotoUrl.length <= BLUEPRINT_LIMITS.photoMax
+      ? params.senderPhotoUrl
+      : '';
+  const cleanStudentPhoto =
+    params.studentPhotoUrl && params.studentPhotoUrl.length <= BLUEPRINT_LIMITS.photoMax
+      ? params.studentPhotoUrl
+      : '';
+  const cleanStudentCode = (params.studentCode || '').trim().slice(0, BLUEPRINT_LIMITS.studentCodeMax);
+  const lastSnippet = cleanText.slice(0, BLUEPRINT_LIMITS.lastMessageMax);
+
+  try {
+    const convSnap = await getDoc(convRef);
+    if (convSnap.exists()) {
+      await updateDoc(convRef, {
+        studentName: params.studentName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
+        studentCode: cleanStudentCode,
+        ...(cleanStudentPhoto ? { studentPhotoUrl: cleanStudentPhoto } : {}),
+        lecturerName: params.lecturerName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
+        lastMessage: lastSnippet,
+        lastSenderRole: params.senderRole,
+        lastMessageAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await setDoc(convRef, {
+        studentId: params.studentId,
+        classId: params.classId,
+        lecturerId: params.lecturerId,
+        studentName: params.studentName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
+        studentCode: cleanStudentCode,
+        ...(cleanStudentPhoto ? { studentPhotoUrl: cleanStudentPhoto } : {}),
+        lecturerName: params.lecturerName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
+        lastMessage: lastSnippet,
+        lastSenderRole: params.senderRole,
+        lastMessageAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, convPath);
+  }
+
+  try {
+    await setDoc(
+      doc(db, 'classes', params.classId, 'conversations', params.studentId, 'messages', messageId),
+      {
+        id: messageId,
+        classId: params.classId,
+        studentId: params.studentId,
+        lecturerId: params.lecturerId,
+        senderId: params.senderId,
+        senderName: params.senderName.trim().slice(0, BLUEPRINT_LIMITS.displayNameMax),
+        senderRole: params.senderRole,
+        ...(cleanSenderPhoto ? { senderPhotoUrl: cleanSenderPhoto } : {}),
+        text: cleanText,
+        createdAt: serverTimestamp(),
+      }
+    );
+    return messageId;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, msgPath);
+  }
+}
+
+export async function deleteDirectMessage(
+  classId: string,
+  studentId: string,
+  messageId: string
+): Promise<void> {
+  const path = `classes/${classId}/conversations/${studentId}/messages/${messageId}`;
+  try {
+    await deleteDoc(doc(db, 'classes', classId, 'conversations', studentId, 'messages', messageId));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+  }
+}
+
 export async function seedSampleAcademicClasses(
   lecturerId: string,
   lecturerName: string
@@ -1671,6 +1999,7 @@ export async function seedSampleAcademicClasses(
     title: 'Engenharia de Software II',
     code: 'INF-304',
     semester: '2026/2027 · 1.º Semestre',
+    school: 'Escola Superior de Tecnologia e Engenharia',
     course: 'Licenciatura em Engenharia Informática',
     academicYear: '3.º Ano',
     schedule: 'Terças e Quintas · 10:00 – 12:00',
@@ -1713,6 +2042,7 @@ export async function seedSampleAcademicClasses(
     title: 'Inteligência Artificial Aplicada',
     code: 'IA-410',
     semester: '2026/2027 · 1.º Semestre',
+    school: 'Instituto Superior de Ciências e Inovação',
     course: 'Licenciatura em Sistemas Inteligentes',
     academicYear: '4.º Ano',
     schedule: 'Segundas e Quartas · 14:30 – 16:30',

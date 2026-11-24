@@ -243,9 +243,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onOpenProfile}
             className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-80 cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
-              {profile?.displayName?.charAt(0).toUpperCase() || 'A'}
-            </div>
+            {profile?.photoUrl ? (
+              <img
+                src={profile.photoUrl}
+                alt={profile.displayName || 'Utilizador'}
+                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                {profile?.displayName?.charAt(0).toUpperCase() || 'A'}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="text-xs font-semibold text-slate-900 truncate">
                 {profile?.displayName || 'Utilizador'}

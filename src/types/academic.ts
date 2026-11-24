@@ -23,6 +23,7 @@ export const BLUEPRINT_LIMITS = {
   joinCodePattern: /^[A-Z0-9]{4,16}$/,
   displayNameMax: 100,
   departmentMax: 100,
+  schoolMax: 120,
   courseMax: 100,
   studentCodeMax: 40,
   classTitleMin: 2,
@@ -57,6 +58,15 @@ export const BLUEPRINT_LIMITS = {
   resultNotesMax: 2000,
   photoMax: 100000,
   chatMessageMax: 1500,
+  academicTitleMax: 120,
+  bioMax: 2500,
+  specializationMax: 300,
+  officeHoursMax: 160,
+  officeLocationMax: 120,
+  contactEmailMax: 160,
+  phoneMax: 40,
+  websiteUrlMax: 300,
+  lastMessageMax: 300,
 };
 
 export interface UserProfile {
@@ -77,6 +87,7 @@ export interface UniversityClass {
   code: string;
   joinCode: string;
   semester: string;
+  school?: string;
   course?: string;
   academicYear?: AcademicYear;
   department?: string;
@@ -99,6 +110,7 @@ export interface ClassJoinCode {
   lecturerId: string;
   lecturerName: string;
   semester: string;
+  school?: string;
   course?: string;
   academicYear?: AcademicYear;
   accentColor: AccentColor;
@@ -115,6 +127,7 @@ export interface Enrollment {
   classTitle: string;
   classCode: string;
   semester: string;
+  school?: string;
   course?: string;
   academicYear?: AcademicYear;
   lecturerName: string;
@@ -258,6 +271,52 @@ export interface ClassChatMessage {
   authorRole: UserRole;
   authorStudentCode?: string;
   authorPhotoUrl?: string;
+  text: string;
+  createdAt: Timestamp;
+}
+
+export interface LecturerPublicProfile {
+  lecturerId: string;
+  displayName: string;
+  academicTitle?: string;
+  school?: string;
+  department?: string;
+  bio?: string;
+  specialization?: string;
+  officeHours?: string;
+  officeLocation?: string;
+  contactEmail?: string;
+  phone?: string;
+  websiteUrl?: string;
+  photoUrl?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface DirectConversation {
+  studentId: string;
+  classId: string;
+  lecturerId: string;
+  studentName: string;
+  studentCode?: string;
+  studentPhotoUrl?: string;
+  lecturerName: string;
+  lastMessage?: string;
+  lastSenderRole: UserRole;
+  lastMessageAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface DirectMessage {
+  id: string;
+  classId: string;
+  studentId: string;
+  lecturerId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  senderPhotoUrl?: string;
   text: string;
   createdAt: Timestamp;
 }
