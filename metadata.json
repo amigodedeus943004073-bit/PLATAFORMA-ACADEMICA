@@ -1,0 +1,10 @@
+{
+  "name": "AuraOS - Android iPhone Hybrid Operating System",
+  "description": "Sistema operativo completo para dispositivos Android com experiência fluida de iPhone, Dynamic Island, terminal Linux, gestos e multitarefas.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

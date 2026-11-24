@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(96, 110)">
+    <!-- Academic Cap / Mortarboard -->
+    <polygon points="160,20 310,90 160,160 10,90" fill="url(#accent)"/>
+    <path d="M70,125 L70,195 C70,220 110,240 160,240 C210,240 250,220 250,195 L250,125 L160,168 Z" fill="#e2e8f0"/>
+    <!-- Tassel -->
+    <line x1="275" y1="106" x2="275" y2="195" stroke="#fbbf24" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="275" cy="202" r="12" fill="#fbbf24"/>
+  </g>
+  <text x="256" y="425" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="44" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    AulaPro
+  </text>
+  <text x="256" y="462" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="18" font-weight="500" fill="#94a3b8" text-anchor="middle" letter-spacing="2">
+    GESTÃO UNIVERSITÁRIA
+  </text>
+</svg>

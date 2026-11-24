@@ -1,0 +1,368 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil privado do docente ou estudante universitário.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "role": { "type": "string", "enum": ["docente", "estudante"] },
+        "department": { "type": "string", "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 40 },
+        "photoUrl": { "type": "string", "maxLength": 100000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "role", "createdAt", "updatedAt"]
+    },
+    "UniversityClass": {
+      "title": "UniversityClass",
+      "description": "Turma ou disciplina universitária lecionada pelo docente.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "code": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "joinCode": { "type": "string", "minLength": 4, "maxLength": 16, "pattern": "^[A-Z0-9]+$" },
+        "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "course": { "type": "string", "maxLength": 100 },
+        "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
+        "department": { "type": "string", "maxLength": 80 },
+        "schedule": { "type": "string", "maxLength": 100 },
+        "room": { "type": "string", "maxLength": 80 },
+        "meetingUrl": { "type": "string", "maxLength": 300 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "accentColor": { "type": "string", "enum": ["indigo", "emerald", "amber", "rose", "sky", "slate"] },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "isArchived": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "code", "joinCode", "semester", "accentColor", "lecturerId", "lecturerName", "isArchived", "createdAt", "updatedAt"]
+    },
+    "ClassJoinCode": {
+      "title": "ClassJoinCode",
+      "description": "Mapeamento direto do código de inscrição para uma turma.",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "code": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "course": { "type": "string", "maxLength": 100 },
+        "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
+        "accentColor": { "type": "string", "enum": ["indigo", "emerald", "amber", "rose", "sky", "slate"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["classId", "title", "code", "lecturerId", "lecturerName", "semester", "accentColor", "createdAt"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Inscrição de um estudante numa turma universitária.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 40 },
+        "studentPhotoUrl": { "type": "string", "maxLength": 100000 },
+        "classTitle": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "classCode": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "semester": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "course": { "type": "string", "maxLength": 100 },
+        "academicYear": { "type": "string", "enum": ["1.º Ano", "2.º Ano", "3.º Ano", "4.º Ano", "5.º Ano"] },
+        "lecturerName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "accentColor": { "type": "string", "enum": ["indigo", "emerald", "amber", "rose", "sky", "slate"] },
+        "status": { "type": "string", "enum": ["active", "removed"] },
+        "attendanceCount": { "type": "number" },
+        "joinedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "classId", "lecturerId", "studentName", "classTitle", "classCode", "semester", "lecturerName", "accentColor", "status", "attendanceCount", "joinedAt", "updatedAt"]
+    },
+    "ClassPost": {
+      "title": "ClassPost",
+      "description": "Comunicado, conteúdo programático, endereço de site ou aviso de avaliação.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "type": { "type": "string", "enum": ["comunicado", "conteudo", "link", "aviso_avaliacao"] },
+        "priority": { "type": "string", "enum": ["normal", "importante", "urgente"] },
+        "module": { "type": "string", "maxLength": 80 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "body": { "type": "string", "maxLength": 5000 },
+        "externalUrl": { "type": "string", "maxLength": 500 },
+        "externalLabel": { "type": "string", "maxLength": 100 },
+        "attachmentId": { "type": "string", "maxLength": 128 },
+        "attachmentName": { "type": "string", "maxLength": 200 },
+        "attachmentSize": { "type": "number" },
+        "attachmentMime": { "type": "string", "maxLength": 140 },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "authorId", "authorName", "type", "priority", "title", "isPinned", "createdAt", "updatedAt"]
+    },
+    "ClassResource": {
+      "title": "ClassResource",
+      "description": "Diretório estruturado de sites, ficheiros locais, bibliografia, slides e repositórios da turma.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "url": { "type": "string", "minLength": 4, "maxLength": 500 },
+        "category": { "type": "string", "enum": ["site", "documento", "video", "repositorio", "ferramenta"] },
+        "module": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 600 },
+        "attachmentId": { "type": "string", "maxLength": 128 },
+        "attachmentName": { "type": "string", "maxLength": 200 },
+        "attachmentSize": { "type": "number" },
+        "attachmentMime": { "type": "string", "maxLength": 140 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "title", "url", "category", "createdAt", "updatedAt"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Trabalho prático, projeto ou avaliação com prazo de entrega.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "dueDate": { "type": "string", "maxLength": 40 },
+        "maxPoints": { "type": "number" },
+        "referenceUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "title", "maxPoints", "status", "createdAt", "updatedAt"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Submissão de trabalho por um estudante e respetiva avaliação pelo docente.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "assignmentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "submissionUrl": { "type": "string", "maxLength": 500 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "grade": { "type": "number" },
+        "isGraded": { "type": "boolean" },
+        "feedback": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["submitted", "graded"] },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "studentName", "classId", "assignmentId", "lecturerId", "grade", "isGraded", "status", "submittedAt", "updatedAt"]
+    },
+    "PostComment": {
+      "title": "PostComment",
+      "description": "Comentário ou dúvida de estudante ou docente num comunicado.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "postId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "authorRole": { "type": "string", "enum": ["docente", "estudante"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "postId", "classId", "authorId", "authorName", "authorRole", "text", "createdAt"]
+    },
+    "ClassAttachment": {
+      "title": "ClassAttachment",
+      "description": "Metadados de ficheiro enviado do telemóvel ou computador do docente.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fileName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "mimeType": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "fileSize": { "type": "number" },
+        "chunkCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "fileName", "mimeType", "fileSize", "chunkCount", "createdAt"]
+    },
+    "AttachmentChunk": {
+      "title": "AttachmentChunk",
+      "description": "Segmento codificado em Base64 de um ficheiro anexado à turma.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "attachmentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "index": { "type": "number" },
+        "data": { "type": "string", "minLength": 1, "maxLength": 500000 }
+      },
+      "required": ["id", "attachmentId", "classId", "lecturerId", "index", "data"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "Prova, frequência, teste ou avaliação presencial/escrita criada pelo docente para atribuir notas individuais.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "category": { "type": "string", "enum": ["prova", "frequencia", "teste", "trabalho", "oral", "exame"] },
+        "date": { "type": "string", "maxLength": 40 },
+        "maxPoints": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "title", "category", "maxPoints", "createdAt", "updatedAt"]
+    },
+    "StudentGrade": {
+      "title": "StudentGrade",
+      "description": "Nota atribuída pelo docente a um estudante numa prova ou avaliação específica.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "studentCode": { "type": "string", "maxLength": 40 },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "assessmentId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "score": { "type": "number" },
+        "remarks": { "type": "string", "maxLength": 400 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "studentName", "classId", "assessmentId", "lecturerId", "score", "createdAt", "updatedAt"]
+    },
+    "ResultPublication": {
+      "title": "ResultPublication",
+      "description": "Publicação oficial no mural de resultados (foto tirada na hora ou lista em PDF).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "assessmentTitle": { "type": "string", "maxLength": 120 },
+        "format": { "type": "string", "enum": ["foto", "pdf"] },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "attachmentId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "attachmentName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "attachmentSize": { "type": "number" },
+        "attachmentMime": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "publishedDate": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "authorName", "title", "format", "attachmentId", "attachmentName", "attachmentSize", "attachmentMime", "createdAt", "updatedAt"]
+    },
+    "ClassChatMessage": {
+      "title": "ClassChatMessage",
+      "description": "Mensagem em tempo real no bate-papo simples da turma entre docente e estudantes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lecturerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "authorRole": { "type": "string", "enum": ["docente", "estudante"] },
+        "authorStudentCode": { "type": "string", "maxLength": 40 },
+        "authorPhotoUrl": { "type": "string", "maxLength": 100000 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "lecturerId", "authorId", "authorName", "authorRole", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Perfis de utilizadores autenticados (PII protegida apenas para o próprio utilizador)."
+    },
+    "/users/{userId}/enrollments/{classId}": {
+      "schema": { "$ref": "#/entities/Enrollment" },
+      "description": "Índice direto das inscrições do estudante para leitura rápida no painel sem necessidade de índice collectionGroup."
+    },
+    "/classes/{classId}": {
+      "schema": { "$ref": "#/entities/UniversityClass" },
+      "description": "Turmas e disciplinas lecionadas pelos docentes."
+    },
+    "/classJoinCodes/{joinCode}": {
+      "schema": { "$ref": "#/entities/ClassJoinCode" },
+      "description": "Índice de códigos de acesso para inscrição direta por estudantes."
+    },
+    "/classes/{classId}/enrollments/{studentId}": {
+      "schema": { "$ref": "#/entities/Enrollment" },
+      "description": "Matrículas dos estudantes em cada turma."
+    },
+    "/classes/{classId}/posts/{postId}": {
+      "schema": { "$ref": "#/entities/ClassPost" },
+      "description": "Mural de comunicados, conteúdos, links e avisos da turma."
+    },
+    "/classes/{classId}/posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/PostComment" },
+      "description": "Comentários e esclarecimento de dúvidas nos comunicados."
+    },
+    "/classes/{classId}/resources/{resourceId}": {
+      "schema": { "$ref": "#/entities/ClassResource" },
+      "description": "Biblioteca de sites, materiais e referências da turma."
+    },
+    "/classes/{classId}/attachments/{attachmentId}": {
+      "schema": { "$ref": "#/entities/ClassAttachment" },
+      "description": "Metadados de ficheiros carregados do dispositivo do docente."
+    },
+    "/classes/{classId}/attachments/{attachmentId}/chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/AttachmentChunk" },
+      "description": "Segmentos binários em Base64 de cada ficheiro carregado."
+    },
+    "/classes/{classId}/assignments/{assignmentId}": {
+      "schema": { "$ref": "#/entities/Assignment" },
+      "description": "Trabalhos e avaliações da turma."
+    },
+    "/classes/{classId}/assignments/{assignmentId}/submissions/{studentId}": {
+      "schema": { "$ref": "#/entities/Submission" },
+      "description": "Entregas dos estudantes e notas atribuídas pelo docente."
+    },
+    "/classes/{classId}/assessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/Assessment" },
+      "description": "Provas, testes e avaliações registadas pelo docente."
+    },
+    "/classes/{classId}/assessments/{assessmentId}/grades/{studentId}": {
+      "schema": { "$ref": "#/entities/StudentGrade" },
+      "description": "Notas individuais atribuídas a cada estudante em cada prova/avaliação."
+    },
+    "/classes/{classId}/results/{resultId}": {
+      "schema": { "$ref": "#/entities/ResultPublication" },
+      "description": "Mural oficial de publicação dos resultados por fotografia ou lista PDF."
+    },
+    "/classes/{classId}/chatMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ClassChatMessage" },
+      "description": "Sala de bate-papo em tempo real da turma."
+    }
+  }
+}
